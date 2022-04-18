@@ -1,0 +1,327 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model departments {
+  department_id           Int                       @id @default(autoincrement()) @db.UnsignedInt
+  department_name         String                    @default("") @db.Char(50)
+  depatment_skill         depatment_skill[]
+  employee                employee[]
+  sales_department_skill  sales_department_skill[]
+  sales_department_target sales_department_target[]
+  sales_record            sales_record[]
+  schedule                schedule[]
+  store_departments       store_departments[]
+}
+
+model employee {
+  employee_id                                                                      Int                            @id @default(autoincrement()) @db.UnsignedInt
+  last_name                                                                        String                         @default("") @db.Char(20)
+  first_name                                                                       String                         @db.Char(20)
+  email                                                                            String?                        @db.Char(50)
+  phone_number                                                                     String?                        @db.Char(50)
+  hire_date                                                                        DateTime                       @db.Date
+  job_id                                                                           Int                            @db.UnsignedInt
+  manager_id                                                                       Int?                           @db.UnsignedInt
+  department_id                                                                    Int                            @default(0) @db.UnsignedInt
+  store_id                                                                         Int                            @db.UnsignedInt
+  fulltime                                                                         Boolean
+  role_id                                                                          Int                            @db.UnsignedInt
+  supertokens_user_id                                                              String?                        @db.Char(36)
+  department                                                                       departments                    @relation(fields: [department_id], references: [department_id], onDelete: NoAction, map: "FK_employee_departments")
+  job                                                                              jobs                           @relation(fields: [job_id], references: [job_id], onDelete: NoAction, map: "FK_employee_jobs")
+  manager                                                                          employee?                      @relation("employeeToemployee_manager_id", fields: [manager_id], references: [employee_id], onDelete: NoAction, map: "FK_employee_employee")
+  role                                                                             role                           @relation(fields: [role_id], references: [role_id], onDelete: NoAction, map: "FK_employee_role")
+  store                                                                            store                          @relation(fields: [store_id], references: [store_id], onDelete: NoAction, map: "FK_employee_store")
+  other_manager                                                                    employee[]                     @relation("employeeToemployee_manager_id")
+  evaluation_from_manager                                                          employee_performance_manager[] @relation("employeeToemployee_performance_manager_employee_id")
+  employee_performance_manager_employeeToemployee_performance_manager_evaluator_id employee_performance_manager[] @relation("employeeToemployee_performance_manager_evaluator_id")
+  employee_skill                                                                   employee_skill[]
+  sales_record                                                                     sales_record[]
+  schedule                                                                         schedule[]
+  time_off_request_employeeTotime_off_request_employee_id                          time_off_request[]             @relation("employeeTotime_off_request_employee_id")
+  time_off_request_employeeTotime_off_request_review_employee_id                   time_off_request[]             @relation("employeeTotime_off_request_review_employee_id")
+
+  @@index([department_id], map: "FK_employee_departments")
+  @@index([manager_id], map: "FK_employee_employee")
+  @@index([job_id], map: "FK_employee_jobs")
+  @@index([role_id], map: "FK_employee_role")
+  @@index([store_id], map: "FK_employee_store")
+  @@index([supertokens_user_id], map: "FK_employee_supertokens.all_auth_recipe_users")
+}
+
+model jobs {
+  job_id    Int        @id @default(autoincrement()) @db.UnsignedInt
+  job_title String     @default("") @db.Char(100)
+  employee  employee[]
+}
+
+model city {
+  city_id     Int       @id @default(autoincrement()) @db.UnsignedInt
+  name        String    @db.Char(50)
+  province_id String    @db.Char(5)
+  country_id  String    @db.Char(5)
+  lat         Float     @db.Float
+  lon         Float     @db.Float
+  country     country   @relation(fields: [country_id], references: [country_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_city_country")
+  province    province  @relation(fields: [province_id], references: [province_id], onDelete: NoAction, map: "FK_city_province")
+  store       store[]
+  weather     weather[]
+
+  @@index([country_id], map: "FK_city_country")
+  @@index([province_id], map: "FK_city_province")
+}
+
+model country {
+  country_id String     @id @db.Char(5)
+  name       String     @db.Char(20)
+  city       city[]
+  province   province[]
+  store      store[]
+}
+
+model province {
+  province_id String  @default("") @db.Char(5)
+  country_id  String  @db.Char(5)
+  name        String  @db.Char(20)
+  country     country @relation(fields: [country_id], references: [country_id], onDelete: NoAction, map: "FK_province_country")
+  city        city[]
+  store       store[]
+
+  @@id([province_id, country_id])
+  @@index([country_id], map: "FK_province_country")
+}
+
+model store {
+  store_id                Int                       @id @default(autoincrement()) @db.UnsignedInt
+  address                 String                    @db.TinyText
+  city_id                 Int                       @db.UnsignedInt
+  province_id             String                    @db.Char(5)
+  country_id              String                    @db.Char(5)
+  post_code               String                    @db.Char(10)
+  city                    city                      @relation(fields: [city_id], references: [city_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_store_city")
+  country                 country                   @relation(fields: [country_id], references: [country_id], onDelete: NoAction, map: "FK_store_country")
+  province                province                  @relation(fields: [province_id], references: [province_id], onDelete: NoAction, map: "FK_store_province")
+  employee                employee[]
+  sales_department_target sales_department_target[]
+  sales_record            sales_record[]
+  store_departments       store_departments[]
+  store_hour              store_hour[]
+
+  @@index([city_id], map: "FK_store_city")
+  @@index([country_id], map: "FK_store_country")
+  @@index([province_id], map: "FK_store_province")
+}
+
+model weather {
+  city_id             Int      @db.UnsignedInt
+  date                DateTime @db.Date
+  temp_avg            Float    @db.Float
+  temp_max            Float    @db.Float
+  temp_min            Float    @db.Float
+  rain_prob           Float    @db.Float
+  rain_mm             Float    @db.Float
+  snow_mm             Float    @db.Float
+  wind_speed          Float    @db.Float
+  weather_code        Int
+  warning_description String?  @db.Char(50)
+  last_update         DateTime @db.DateTime(0)
+  city                city     @relation(fields: [city_id], references: [city_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_weather_city")
+
+  @@id([city_id, date])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model time_off_request {
+  request_id                                             Int         @id @default(autoincrement())
+  employee_id                                            Int         @db.UnsignedInt
+  status_id                                              Int         @db.TinyInt
+  review_employee_id                                     Int?        @db.UnsignedInt
+  create_time                                            DateTime    @default(now()) @db.DateTime(0)
+  last_update                                            DateTime    @default(now()) @db.DateTime(0)
+  off_date                                               DateTime    @db.Date
+  start_time                                             DateTime?   @db.Time(0)
+  end_time                                               DateTime?   @db.Time(0)
+  employee_employeeTotime_off_request_employee_id        employee    @relation("employeeTotime_off_request_employee_id", fields: [employee_id], references: [employee_id], onDelete: NoAction, map: "FK_time_off_request_employee")
+  employee_employeeTotime_off_request_review_employee_id employee?   @relation("employeeTotime_off_request_review_employee_id", fields: [review_employee_id], references: [employee_id], onDelete: NoAction, map: "FK_time_off_request_employee_2")
+  status_type                                            status_type @relation(fields: [status_id], references: [status_id], onDelete: NoAction, map: "FK_time_off_request_status_type")
+
+  @@index([employee_id], map: "FK_time_off_request_employee")
+  @@index([review_employee_id], map: "FK_time_off_request_employee_2")
+  @@index([status_id], map: "FK_time_off_request_status_type")
+}
+
+model store_hour {
+  store_id          Int      @db.UnsignedInt
+  day               Int      @default(0) @db.TinyInt
+  open_time         DateTime @default(dbgenerated("'00:00:00'")) @db.Time(0)
+  close_time        DateTime @default(dbgenerated("'00:00:00'")) @db.Time(0)
+  public_open_time  DateTime @default(dbgenerated("'00:00:00'")) @db.Time(0)
+  public_close_time DateTime @default(dbgenerated("'00:00:00'")) @db.Time(0)
+  store             store    @relation(fields: [store_id], references: [store_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_store_hour_store")
+
+  @@id([store_id, day])
+}
+
+model status_type {
+  status_id        Int                @id @default(autoincrement()) @db.TinyInt
+  status           String             @db.Char(50)
+  time_off_request time_off_request[]
+}
+
+model hoilday {
+  Column_1 Int @id @map("Column 1")
+}
+
+model schedule {
+  employee_id   Int         @db.UnsignedInt
+  department_id Int         @db.UnsignedInt
+  store_id      Int         @db.UnsignedInt
+  date          DateTime    @db.Date
+  start_time    DateTime    @db.Time(0)
+  end_time      DateTime    @db.Time(0)
+  total_time    DateTime    @db.Time(0)
+  departments   departments @relation(fields: [department_id], references: [department_id], onDelete: NoAction, map: "FK_schedule_departments")
+  employee      employee    @relation(fields: [employee_id], references: [employee_id], onDelete: NoAction, map: "FK_schedule_employee")
+
+  @@id([employee_id, department_id, date, start_time])
+  @@index([department_id], map: "FK_schedule_departments")
+}
+
+model store_departments {
+  store_id      Int         @db.UnsignedInt
+  department_id Int         @db.UnsignedInt
+  max_employee  Int         @default(0)
+  min_employee  Int         @default(0)
+  departments   departments @relation(fields: [department_id], references: [department_id], onDelete: NoAction, map: "FK_store_departments_departments")
+  store         store       @relation(fields: [store_id], references: [store_id], onDelete: NoAction, map: "FK_store_departments_store")
+
+  @@id([store_id, department_id])
+  @@index([department_id], map: "FK_store_departments_departments")
+}
+
+model employee_performance_manager {
+  evaluation_id                                                String                               @id @default("0") @db.VarChar(36)
+  employee_id                                                  Int                                  @db.UnsignedInt
+  evaluator_id                                                 Int                                  @db.UnsignedInt
+  comment                                                      String?                              @db.Text
+  update_time                                                  DateTime                             @default(now()) @db.Timestamp(0)
+  employee_employeeToemployee_performance_manager_employee_id  employee                             @relation("employeeToemployee_performance_manager_employee_id", fields: [employee_id], references: [employee_id], onDelete: NoAction, map: "FK_employee_performance_manager_employee")
+  employee_employeeToemployee_performance_manager_evaluator_id employee                             @relation("employeeToemployee_performance_manager_evaluator_id", fields: [evaluator_id], references: [employee_id], onDelete: NoAction, map: "FK_employee_performance_manager_employee_2")
+  skills                                                       employee_performance_manager_skill[]
+
+  @@index([employee_id], map: "FK_employee_performance_manager_employee")
+  @@index([evaluator_id], map: "FK_employee_performance_manager_employee_2")
+}
+
+model sales_record {
+  id            Int          @id @default(autoincrement())
+  sales_id      Int          @db.UnsignedInt
+  total         Decimal      @db.Decimal(20, 2)
+  store_id      Int          @db.UnsignedInt
+  department_id Int?         @db.UnsignedInt
+  time          DateTime     @default(now()) @db.DateTime(0)
+  date          DateTime     @default(dbgenerated("(curdate())")) @db.Date
+  departments   departments? @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_record_departments")
+  employee      employee     @relation(fields: [sales_id], references: [employee_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_record_employee")
+  store         store        @relation(fields: [store_id], references: [store_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_record_store")
+
+  @@index([department_id], map: "FK_sales_record_departments")
+  @@index([sales_id], map: "FK_sales_record_employee")
+  @@index([store_id], map: "FK_sales_record_store")
+}
+
+model role {
+  role_id   Int        @id @default(autoincrement()) @db.UnsignedInt
+  rold_name String     @db.Char(50)
+  employee  employee[]
+}
+
+model depatment_skill {
+  deparment_id Int         @db.UnsignedInt
+  skill_id     Int         @db.UnsignedInt
+  departments  departments @relation(fields: [deparment_id], references: [department_id], onDelete: Cascade, map: "FK_depatment_skill_departments")
+  skill        skill       @relation(fields: [skill_id], references: [skill_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_depatment_skill_skill")
+
+  @@id([deparment_id, skill_id])
+  @@index([skill_id], map: "FK_depatment_skill_skill")
+}
+
+model employee_performance_manager_skill {
+  evaluation_id                String                       @default("'0'") @db.VarChar(36)
+  skill_id                     Int                          @db.UnsignedInt
+  level                        Int
+  employee_performance_manager employee_performance_manager @relation(fields: [evaluation_id], references: [evaluation_id], onDelete: Cascade, map: "FK_employee_performance_manager_skill_performance_manager")
+  skill_level                  skill_level                  @relation(fields: [level], references: [skill_level], onDelete: Cascade, map: "FK_employee_performance_manager_skill_skill_level")
+  skill                        skill                        @relation(fields: [skill_id], references: [skill_id], onDelete: Cascade, map: "FK_employee_performance_manager_skill_skill")
+
+  @@id([evaluation_id, skill_id])
+  @@index([skill_id], map: "FK_employee_performance_manager_skill_skill")
+  @@index([level], map: "FK_employee_performance_manager_skill_skill_level")
+}
+
+model employee_skill {
+  employee_id Int         @db.UnsignedInt
+  skill_id    Int         @db.UnsignedInt
+  level       Int
+  raw_value   Float       @default(0) @db.Float
+  employee    employee    @relation(fields: [employee_id], references: [employee_id], onDelete: Cascade, map: "FK_employee_skill_employee")
+  skill_level skill_level @relation(fields: [level], references: [skill_level], onDelete: Cascade, map: "FK_employee_skill_skill_level")
+  skill       skill       @relation(fields: [skill_id], references: [skill_id], onDelete: Cascade, map: "FK_employee_skill_skill")
+
+  @@id([employee_id, skill_id])
+  @@index([skill_id], map: "FK_employee_skill_skill")
+  @@index([level], map: "FK_employee_skill_skill_level")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model foo {
+  id String? @db.Char(36)
+
+  @@ignore
+}
+
+model skill {
+  skill_id                           Int                                  @id @default(autoincrement()) @db.UnsignedInt
+  name                               String                               @db.Char(50)
+  comment                            String?                              @db.Text
+  depatment_skill                    depatment_skill[]
+  employee_performance_manager_skill employee_performance_manager_skill[]
+  employee_skill                     employee_skill[]
+  sales_department_skill             sales_department_skill[]
+}
+
+model skill_level {
+  skill_level                        Int                                  @id
+  decription                         String?                              @db.Char(50)
+  employee_performance_manager_skill employee_performance_manager_skill[]
+  employee_skill                     employee_skill[]
+}
+
+model sales_department_skill {
+  department_id Int         @db.UnsignedInt
+  skill_id      Int         @db.UnsignedInt
+  weight        Float       @default(1) @db.Float
+  departments   departments @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_department_skill_departments")
+  skill         skill       @relation(fields: [skill_id], references: [skill_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_department_skill_skill")
+
+  @@id([department_id, skill_id])
+  @@index([skill_id], map: "FK_sales_department_skill_skill")
+}
+
+model sales_department_target {
+  store_id        Int         @db.UnsignedInt
+  department_id   Int         @db.UnsignedInt
+  target_quantity Int         @default(0)
+  target_value    Decimal     @default(0.00) @db.Decimal(20, 2)
+  departments     departments @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_department_target_departments")
+  store           store       @relation(fields: [store_id], references: [store_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_sales_department_target_store")
+
+  @@id([department_id, store_id])
+  @@index([store_id], map: "FK_sales_department_target_store")
+}
